@@ -33,7 +33,7 @@ jobs:
 
       # 下载OpenAI代码审查SDK
       - name: Download openai-code-review-sdk JAR
-        run: wget -O ./libs/openai-code-review-sdk-1.1.jar https://github.com/javawxid/openai-code-review-log/releases/download/v1.1/openai-code-review-sdk-1.1.jar
+        run: wget -O ./libs/openai-code-review-sdk-1.1.jar https://github.com/javawxid/openai-code-review-log/releases/download/v1.0/openai-code-review-sdk-1.0.jar
 
       # 获取仓库名称
       - name: Get repository name
