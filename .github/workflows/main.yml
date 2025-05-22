@@ -1,0 +1,86 @@
+
+name: OpenAiCodeReview  # 工作流名称
+
+on:
+  push:  # 触发条件：代码推送事件
+    branches:
+      - '*'  # 所有分支
+  pull_request:  # 触发条件：PR事件
+    branches:
+      - '*'  # 所有分支
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # 运行环境
+
+    steps:
+      # 检出代码仓库
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2  # 检出最后两个提交，以便可以比较 HEAD~1 和 HEAD
+
+      # 设置JDK 11环境
+      - name: Set up JDK 11
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '11'
+
+      # 创建libs目录存放SDK
+      - name: Create libs directory
+        run: mkdir -p ./libs
+
+      # 下载OpenAI代码审查SDK
+      - name: Download openai-code-review-sdk JAR
+        run: wget -O ./libs/openai-code-review-sdk-1.1.jar https://github.com/javawxid/openai-code-review-log/releases/download/v1.1/openai-code-review-sdk-1.1.jar
+
+      # 获取仓库名称
+      - name: Get repository name
+        id: repo-name
+        run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+
+      # 获取分支名称
+      - name: Get branch name
+        id: branch-name
+        run: echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+
+      # 获取提交作者信息
+      - name: Get commit author
+        id: commit-author
+        run: echo "COMMIT_AUTHOR=$(git log -1 --pretty=format:'%an <%ae>')" >> $GITHUB_ENV
+
+      # 获取提交信息
+      - name: Get commit message
+        id: commit-message
+        run: echo "COMMIT_MESSAGE=$(git log -1 --pretty=format:'%s')" >> $GITHUB_ENV
+
+      # 打印仓库信息
+      - name: Print repository info
+        run: |
+          echo "Repository name is ${{ env.REPO_NAME }}"
+          echo "Branch name is ${{ env.BRANCH_NAME }}"
+          echo "Commit author is ${{ env.COMMIT_AUTHOR }}"
+          echo "Commit message is ${{ env.COMMIT_MESSAGE }}"
+
+      # 执行代码审查
+      - name: Run Code Review
+        run: java -jar ./libs/openai-code-review-sdk-1.1.jar
+        env:
+          # GitHub配置
+          GITHUB_REVIEW_LOG_URI: ${{ secrets.CODE_REVIEW_LOG_URI }}  # 审查日志存储地址
+          GITHUB_TOKEN: ${{ secrets.CODE_TOKEN }}  # GitHub访问令牌
+          COMMIT_PROJECT: ${{ env.REPO_NAME }}  # 项目名称
+          COMMIT_BRANCH: ${{ env.BRANCH_NAME }}  # 分支名称
+          COMMIT_AUTHOR: ${{ env.COMMIT_AUTHOR }}  # 提交作者
+          COMMIT_MESSAGE: ${{ env.COMMIT_MESSAGE }}  # 提交信息
+          
+          # 微信通知配置
+          WEIXIN_APPID: ${{ secrets.WEIXIN_APPID }}  # 微信应用ID
+          WEIXIN_SECRET: ${{ secrets.WEIXIN_SECRET }}  # 微信应用密钥
+          WEIXIN_TOUSER: ${{ secrets.WEIXIN_TOUSER }}  # 接收者ID
+          WEIXIN_TEMPLATE_ID: ${{ secrets.WEIXIN_TEMPLATE_ID }}  # 消息模板ID
+          
+          # ChatGLM配置
+          CHATGLM_APIHOST: ${{ secrets.CHATGLM_APIHOST }}  # API主机地址
+          CHATGLM_APIKEYSECRET: ${{ secrets.CHATGLM_APIKEYSECRET }}  # API密钥
